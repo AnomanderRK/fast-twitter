@@ -1,7 +1,7 @@
 import uvicorn
 from typing import Optional
 from pydantic import BaseModel
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Query
 
 app = FastAPI()
 
@@ -26,6 +26,14 @@ def create_person(person: Person = Body(...)):
     return person
 
 
+@app.get("/person/detail")
+def show_pearson(name: Optional[str] = Query(default=None, min_length=1, max_length=50),
+                 age: int = Query(...)):
+    #  Query parameters (optionals) and required ...
+    #  query parameters are optionals but can be used as needed
+    return {name: age}
+
+
 @app.get("/tweets/{tweet_id}")
 def get_tweet(tweet_id):
     return {tweet_id: "Some value"}
@@ -34,6 +42,8 @@ def get_tweet(tweet_id):
 @app.post("/users/{user_id}/details?age=30&height=184")
 def get_user():
     return {}
+
+
 
 
 if __name__ == "__main__":
