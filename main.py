@@ -1,7 +1,8 @@
+"""Open documentation in: http://127.0.0.1:5000/redoc or http://127.0.0.1:5000/docs"""
 import uvicorn
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from fastapi import FastAPI, Body, Query, Path
 
 app = FastAPI()
@@ -23,12 +24,26 @@ class Person(BaseModel):
     age: int = Field(..., gt=18, le=115)
     hair_color: Optional[HairColor] = Field(default=None)
     is_married: Optional[bool] = Field(default=None)
+    email: Optional[EmailStr] = Field(default=None)
+
+    class Config:
+        """Just for testing API. Default values shown in swagger, for example"""
+        schema_extra = {
+            "example": {
+                "first_name": "Kenny",
+                "last_name": "Miranda",
+                "age": 27,
+                "hair_color": "black",
+                "is_married": False,
+                "email": "kenny@some.com"
+            }
+        }
 
 
 class Location(BaseModel):
-    city: str
-    state: str
-    country: str
+    city: str = Field(..., min_length=1, max_length=50, example="Queretaro")
+    state: str = Field(..., min_length=1, max_length=50, example="Queretaro")
+    country: str = Field(..., min_length=1, max_length=50, example="Mexico")
 
 
 @app.get("/")
