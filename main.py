@@ -3,7 +3,7 @@ import uvicorn
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr
-from fastapi import FastAPI, Body, Query, Path
+from fastapi import FastAPI, Body, Query, Path, status
 
 app = FastAPI()
 
@@ -22,6 +22,7 @@ class Person(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
     age: int = Field(..., gt=18, le=115)
+    password: str = Field(..., min_length=8)
     hair_color: Optional[HairColor] = Field(default=None)
     is_married: Optional[bool] = Field(default=None)
     email: Optional[EmailStr] = Field(default=None)
@@ -33,7 +34,8 @@ class Person(BaseModel):
                 "first_name": "Kenny",
                 "last_name": "Miranda",
                 "age": 27,
-                "hair_color": "black",
+                "password": "12345678",
+                "hair_color": HairColor.BLACK,
                 "is_married": False,
                 "email": "kenny@some.com"
             }
@@ -46,18 +48,19 @@ class Location(BaseModel):
     country: str = Field(..., min_length=1, max_length=50, example="Mexico")
 
 
-@app.get("/")
+@app.get("/", status_code=status.HTTP_200_OK)
 def home():
     return {"hello": "world"}
 
 
-@app.post("/person/new")
+@app.post("/person/new", response_model=Person, response_model_exclude={"password"},
+          status_code=status.HTTP_201_CREATED)
 def create_person(person: Person = Body(...)):
     # request body. Body makes the parameter needed
     return person
 
 
-@app.get("/person/detail")
+@app.get("/person/detail", status_code=status.HTTP_200_OK)
 def show_person(name: Optional[str] = Query(default=None,
                                             min_length=1,
                                             max_length=50,
@@ -71,7 +74,7 @@ def show_person(name: Optional[str] = Query(default=None,
     return {name: age}
 
 
-@app.get("/person/detail/{person_id}")
+@app.get("/person/detail/{person_id}", status_code=status.HTTP_200_OK)
 def show_person(person_id: int = Path(...,
                                       gt=0,
                                       title="Person's ID",
@@ -80,7 +83,7 @@ def show_person(person_id: int = Path(...,
     return {person_id: "It exists"}
 
 
-@app.put("/person/{person_id}")
+@app.put("/person/{person_id}", status_code=status.HTTP_200_OK)
 def update_person(person_id: int = Path(...,
                                         gt=0,
                                         title="Person's ID",
