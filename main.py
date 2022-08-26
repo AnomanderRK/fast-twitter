@@ -1,9 +1,11 @@
-"""Open documentation in: http://127.0.0.1:5000/redoc or http://127.0.0.1:5000/docs"""
+"""
+Run server: uvicorn main:app --reload
+Open documentation in: http://127.0.0.1:5000/redoc or http://127.0.0.1:5000/docs"""
 import uvicorn
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr
-from fastapi import FastAPI, Body, Query, Path, status
+from fastapi import FastAPI, Body, Query, Path, Form, status
 
 app = FastAPI()
 
@@ -46,6 +48,11 @@ class Location(BaseModel):
     city: str = Field(..., min_length=1, max_length=50, example="Queretaro")
     state: str = Field(..., min_length=1, max_length=50, example="Queretaro")
     country: str = Field(..., min_length=1, max_length=50, example="Mexico")
+
+
+class LoginOut(BaseModel):
+    username: str = Field(..., max_length=20, example="AnomanderRK")
+    message: str = Field(default="Login successfully!")
 
 
 @app.get("/", status_code=status.HTTP_200_OK)
@@ -95,6 +102,11 @@ def update_person(person_id: int = Path(...,
     results = person.dict()
     results.update(location.dict())
     return {person_id: results}
+
+
+@app.post(path="/login", response_model=LoginOut, status_code=status.HTTP_200_OK)
+def login(username: str = Form(...), password: str = Form(...)):
+    return LoginOut(username=username)
 
 
 if __name__ == "__main__":
