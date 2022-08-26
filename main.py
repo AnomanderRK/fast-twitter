@@ -5,7 +5,7 @@ import uvicorn
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr
-from fastapi import FastAPI, Body, Query, Path, Form, status
+from fastapi import FastAPI, Body, Query, Path, Form, status, Header, Cookie
 
 app = FastAPI()
 
@@ -107,6 +107,23 @@ def update_person(person_id: int = Path(...,
 @app.post(path="/login", response_model=LoginOut, status_code=status.HTTP_200_OK)
 def login(username: str = Form(...), password: str = Form(...)):
     return LoginOut(username=username)
+
+
+@app.post(path="/contact", status_code=status.HTTP_200_OK)
+def contact(first_name: str = Form(..., max_length=20, min_length=1, example="Anomander"),
+            last_name: str = Form(..., max_length=20, min_length=1, example="Rake"),
+            email: EmailStr = Form(..., example="example@example.com"),
+            message: str = Form(min_length=20, max_length=300, example="This is a message example ..."),
+            user_agent: Optional[str] = Header(default=None),
+            ads: Optional[str] = Cookie(default=None)):
+    return {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "message": message,
+        "user_agent": user_agent,
+        "ads": ads,
+    }
 
 
 if __name__ == "__main__":
