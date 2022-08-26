@@ -6,9 +6,11 @@ from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field, EmailStr
 from fastapi import FastAPI, Body, Query, Path, Form, status, Header, Cookie
-from fastapi import UploadFile, File
+from fastapi import UploadFile, File, HTTPException
 
 app = FastAPI()
+
+PERSON_IDS = {1, 2, 3, 4}   # To validate person
 
 
 # Create enums
@@ -88,6 +90,11 @@ def show_person(person_id: int = Path(...,
                                       title="Person's ID",
                                       description="Showing person's ID")):
     # validating path parameters
+    if person_id not in PERSON_IDS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"This person id {person_id} does not exists in the DB"
+        )
     return {person_id: "It exists"}
 
 
