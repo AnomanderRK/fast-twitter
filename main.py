@@ -70,7 +70,7 @@ def create_person(person: Person = Body(...)):
     return person
 
 
-@app.get("/person/detail", status_code=status.HTTP_200_OK, tags=["Persons"])
+@app.get("/person/detail", status_code=status.HTTP_200_OK, tags=["Persons"], deprecated=True)
 def show_person(name: Optional[str] = Query(default=None,
                                             min_length=1,
                                             max_length=50,
