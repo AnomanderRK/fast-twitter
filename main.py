@@ -20,12 +20,34 @@ Run server: uvicorn main:app --reload
 - DELETE /users/{user_id}     Delete specific user
 
 """
+from __future__ import annotations
+import uuid
 
 from fastapi import FastAPI
+from fastapi import Path, status
+from fastapi.exceptions import HTTPException
+from models import Tweet
+from uuid import uuid4
 
 app = FastAPI()
 
 
-@app.get("/")
-def get_home():
-    """Show home information"""
+# TODO: get information from database
+TEST_TWEETS = [Tweet(tweet_id=uuid4(), message="Some message ............"),
+               Tweet(tweet_id=uuid4(), message="Some other message......."),
+               Tweet(tweet_id="some_id", message="Some other message 2......."),]
+
+
+@app.get("/tweets", status_code=status.HTTP_200_OK)
+def get_tweets():
+    """Show all tweets information"""
+    return {tweet.tweet_id: tweet for tweet in TEST_TWEETS}
+
+
+@app.get("/tweets/{tweet_id}", status_code=status.HTTP_200_OK, response_model=Tweet)
+def get_tweet(tweet_id: uuid.UUID | str = Path(..., min_length=5)):
+    """Get tween with tweet id"""
+    if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"{tweet_id} not present in data base")
+    return list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]

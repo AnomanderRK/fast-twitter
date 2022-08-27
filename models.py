@@ -1,14 +1,14 @@
 """Contains BaseModels models for current API"""
-
+from __future__ import annotations
 from pydantic import BaseModel, Field
-from uuid import uuid4
+import uuid
 
 
 class Tweet(BaseModel):
-    id: uuid4 = Field(...)
+    tweet_id: uuid.UUID | str = Field(...)
     message: str = Field(..., min_length=25, max_length=170)
 
 
 class User(BaseModel):
-    id: uuid4 = Field(...)
+    user_id: uuid.UUID | str = Field(...)
     name: str = Field(..., min_length=5, max_length=50)
