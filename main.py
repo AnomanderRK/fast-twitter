@@ -71,3 +71,15 @@ def update_tweet(tweet_id: uuid.UUID | str = Path(...),
     tweet = list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
     tweet.message = message
     return tweet
+
+
+@app.delete("/tweets/{tweet_id}", status_code=status.HTTP_200_OK, response_model=Tweet)
+def delete_tweet(tweet_id: uuid.UUID | str = Path(...)):
+    """Update tweet"""
+    if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"{tweet_id} not found!")
+
+    tweet = list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
+    TEST_TWEETS.remove(tweet)
+    return tweet
