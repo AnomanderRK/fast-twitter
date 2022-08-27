@@ -1,6 +1,7 @@
 """Contains BaseModels models for current API"""
 from __future__ import annotations
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional
 import uuid
 
 
@@ -20,4 +21,8 @@ class Tweet(BaseModel):
 
 class User(BaseModel):
     user_id: uuid.UUID | str = Field(...)
-    name: str = Field(..., min_length=5, max_length=50)
+    first_name: str = Field(..., min_length=5, max_length=50)
+    last_name: str = Field(..., min_length=5, max_length=50)
+    age: int = Field(..., ge=18)
+    password: str = Field(..., min_length=8)
+    email: Optional[EmailStr] = Field(default=None)
