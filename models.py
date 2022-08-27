@@ -8,6 +8,15 @@ class Tweet(BaseModel):
     tweet_id: uuid.UUID | str = Field(...)
     message: str = Field(..., min_length=25, max_length=170)
 
+    class Config:
+        """Just for testing API. Default values shown in swagger, for example"""
+        schema_extra = {
+            "example": {
+                "tweet_id": "some_test_id",
+                "message": "Some message with more that 25 characters",
+            }
+        }
+
 
 class User(BaseModel):
     user_id: uuid.UUID | str = Field(...)
