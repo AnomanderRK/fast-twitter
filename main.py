@@ -24,7 +24,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import FastAPI
-from fastapi import Path, status
+from fastapi import Path, Body, status
 from fastapi.exceptions import HTTPException
 from models import Tweet
 from uuid import uuid4
@@ -51,3 +51,10 @@ def get_tweet(tweet_id: uuid.UUID | str = Path(..., min_length=5)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"{tweet_id} not present in data base")
     return list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
+
+
+@app.post("/tweets/", status_code=status.HTTP_200_OK, response_model=Tweet)
+def create_tweet(tweet: Tweet = Body(...)):
+    """Get tween with tweet id"""
+    TEST_TWEETS.append(tweet)
+    return tweet
