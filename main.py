@@ -55,6 +55,19 @@ def get_tweet(tweet_id: uuid.UUID | str = Path(..., min_length=5)):
 
 @app.post("/tweets/", status_code=status.HTTP_200_OK, response_model=Tweet)
 def create_tweet(tweet: Tweet = Body(...)):
-    """Get tween with tweet id"""
+    """Create new tweet"""
     TEST_TWEETS.append(tweet)
+    return tweet
+
+
+@app.put("/tweets/{tweet_id}", status_code=status.HTTP_200_OK, response_model=Tweet)
+def update_tweet(tweet_id: uuid.UUID | str = Path(...),
+                 message: str = Body(...)):
+    """Update tweet"""
+    if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"{tweet_id} not found!")
+
+    tweet = list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
+    tweet.message = message
     return tweet
