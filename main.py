@@ -14,6 +14,8 @@ Run server: uvicorn main:app --reload
 - POST /auth/login            Login a user
 
 ## Users
+- PUT /auth/login             login user
+- PUT /auth/signup            sign up new user
 - GET /users/                 Show all users
 - GET /users/{user_id}        Get specific user
 - PUT /users/{user_id}        Update specific user
@@ -26,18 +28,21 @@ import uuid
 from fastapi import FastAPI
 from fastapi import Path, Body, Form, status
 from fastapi.exceptions import HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
 from models import Tweet, User
 from uuid import uuid4
 from typing import Optional
 from datetime import date
+
+
 app = FastAPI()
 
 
 # TODO: get information from database
 TEST_TWEETS = [Tweet(tweet_id=uuid4(), message="Some message ............"),
                Tweet(tweet_id=uuid4(), message="Some other message......."),
-               Tweet(tweet_id="some_id", message="Some other message 2......."),]
+               Tweet(tweet_id="some_id", message="Some other message 2.......")]
 
 
 def retrieve_tweet(tweet_id: uuid.UUID | str) -> Optional[Tweet]:
@@ -51,6 +56,13 @@ def retrieve_tweet(tweet_id: uuid.UUID | str) -> Optional[Tweet]:
 
 # Path operations
 # Tweets path operations
+
+@app.get(path="/", response_class=RedirectResponse,
+         summary="Show all tweets", tags=["Tweets"])
+def home():
+    """Show all tweets information. Redirect to /tweets"""
+    return "/tweets"
+
 
 @app.get("/tweets", status_code=status.HTTP_200_OK)
 def get_tweets():
