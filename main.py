@@ -30,7 +30,7 @@ from pydantic import EmailStr
 from models import Tweet, User
 from uuid import uuid4
 from typing import Optional
-
+from datetime import date
 app = FastAPI()
 
 
@@ -48,6 +48,9 @@ def retrieve_tweet(tweet_id: uuid.UUID | str) -> Optional[Tweet]:
         raise Exception(f"Tweet id: {tweet_id} not present")
     return tweet
 
+
+# Path operations
+# Tweets path operations
 
 @app.get("/tweets", status_code=status.HTTP_200_OK)
 def get_tweets():
@@ -96,17 +99,49 @@ def delete_tweet(tweet_id: uuid.UUID | str = Path(...)):
     return tweet
 
 
-@app.post("/auth/signup", status_code=status.HTTP_200_OK, response_model=User)
+# Users path operations
+@app.post(path="/auth/signup", response_model=User, status_code=status.HTTP_201_CREATED,
+          summary="Register a new user", tags=["Users"])
 def register_new_user(first_name: str = Form(min_length=5, max_length=50),
                       last_name: str = Form(min_length=5, max_length=50),
-                      age: int = Form(ge=18, le=115),
+                      birthday: date = Form(...),
                       password: str = Form(min_length=8, max_length=50),
                       email: EmailStr = Form(default=None)):
     """Create new user"""
+    # TODO: handle password
     user = User(user_id=uuid.uuid4(),
                 first_name=first_name,
                 last_name=last_name,
-                age=age,
-                password=password,
+                birthday=birthday,
                 email=email)
     return user
+
+
+@app.post(path="/auth/login", response_model=User, status_code=status.HTTP_200_OK,
+          summary="Login user", tags=["Users"])
+def login():
+    pass
+
+
+@app.get(path="/users", response_model=list[User], status_code=status.HTTP_200_OK,
+         summary="Show all users", tags=["Users"])
+def show_all_users():
+    pass
+
+
+@app.get(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
+         summary="Get information for specific user", tags=["Users"])
+def show_user():
+    pass
+
+
+@app.delete(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
+            summary="Delete a user", tags=["Users"])
+def delete_user():
+    pass
+
+
+@app.put(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
+         summary="Update user", tags=["Users"])
+def update_user():
+    pass
