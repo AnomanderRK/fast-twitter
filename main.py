@@ -24,15 +24,16 @@ Run server: uvicorn main:app --reload
 """
 from __future__ import annotations
 import uuid
+import json
 
 from fastapi import FastAPI
 from fastapi import Path, Body, Form, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
-from models import Tweet, User
+from models import Tweet, User, UserRegister
 from uuid import uuid4
-from typing import Optional
+from typing import Optional, Any
 from datetime import date
 
 
@@ -40,12 +41,12 @@ app = FastAPI()
 
 
 # TODO: get information from database
-TEST_TWEETS = [Tweet(tweet_id=uuid4(), message="Some message ............"),
+TEST_TWEETS = [Tweet(tweet_id=uuid4(), message="Some message ............."),
                Tweet(tweet_id=uuid4(), message="Some other message......."),
-               Tweet(tweet_id="some_id", message="Some other message 2.......")]
+               Tweet(tweet_id=uuid4(), message="Some other message 2.......")]
 
 
-def retrieve_tweet(tweet_id: uuid.UUID | str) -> Optional[Tweet]:
+def retrieve_tweet(tweet_id: uuid.UUID) -> Optional[Tweet]:
     """Retrieve tweet with tweet id"""
     try:
         tweet = list(filter(lambda tw: tw.tweet_id == tweet_id, TEST_TWEETS))[0]
@@ -64,68 +65,81 @@ def home():
     return "/tweets"
 
 
-@app.get("/tweets", status_code=status.HTTP_200_OK)
+@app.get("/tweets", status_code=status.HTTP_200_OK,
+         summary="Show all tweets", tags=["Tweets"])
 def get_tweets():
     """Show all tweets information"""
     return {tweet.tweet_id: tweet for tweet in TEST_TWEETS}
 
 
-@app.get("/tweets/{tweet_id}", status_code=status.HTTP_200_OK, response_model=Tweet)
-def get_tweet(tweet_id: uuid.UUID | str = Path(..., min_length=5)):
-    """Get tween with tweet id"""
-    if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"{tweet_id} not present in data base")
-    return list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
-
-
-@app.post("/tweets/", status_code=status.HTTP_200_OK, response_model=Tweet)
-def create_tweet(tweet: Tweet = Body(...)):
-    """Create new tweet"""
-    TEST_TWEETS.append(tweet)
-    return tweet
-
-
-@app.put("/tweets/{tweet_id}", status_code=status.HTTP_200_OK, response_model=Tweet)
-def update_tweet(tweet_id: uuid.UUID | str = Path(...),
-                 message: str = Body(...)):
-    """Update tweet"""
-    if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"{tweet_id} not found!")
-
-    tweet = retrieve_tweet(tweet_id)
-    tweet.message = message
-    return tweet
-
-
-@app.delete("/tweets/{tweet_id}", status_code=status.HTTP_200_OK, response_model=Tweet)
-def delete_tweet(tweet_id: uuid.UUID | str = Path(...)):
-    """Update tweet"""
-    if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"{tweet_id} not found!")
-
-    tweet = retrieve_tweet(tweet_id)
-    TEST_TWEETS.remove(tweet)
-    return tweet
+# @app.get("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
+#          summary="Show a tweet", tags=["Tweets"])
+# def get_tweet(tweet_id: uuid.UUID = Path(..., min_length=5)):
+#     """Get tween with tweet id"""
+#     if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                             detail=f"{tweet_id} not present in data base")
+#     return list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
+#
+#
+# @app.post("/tweets/", response_model=Tweet, status_code=status.HTTP_201_CREATED,
+#           summary="Create a tweet", tags=["Tweets"])
+# def create_tweet(tweet: Tweet = Body(...)):
+#     """Create new tweet"""
+#     TEST_TWEETS.append(tweet)
+#     return tweet
+#
+#
+# @app.put("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_201_CREATED,
+#          summary="Update a tweet", tags=["Tweets"])
+# def update_tweet(tweet_id: uuid.UUID = Path(...),
+#                  message: str = Body(...)):
+#     """Update tweet"""
+#     if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                             detail=f"{tweet_id} not found!")
+#
+#     tweet = retrieve_tweet(tweet_id)
+#     tweet.message = message
+#     return tweet
+#
+#
+# @app.delete("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
+#             summary="Delete a tweet", tags=["Tweets"])
+# def delete_tweet(tweet_id: uuid.UUID = Path(...)):
+#     """Update tweet"""
+#     if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                             detail=f"{tweet_id} not found!")
+#
+#     tweet = retrieve_tweet(tweet_id)
+#     TEST_TWEETS.remove(tweet)
+#     return tweet
 
 
 # Users path operations
 @app.post(path="/auth/signup", response_model=User, status_code=status.HTTP_201_CREATED,
           summary="Register a new user", tags=["Users"])
-def register_new_user(first_name: str = Form(min_length=5, max_length=50),
-                      last_name: str = Form(min_length=5, max_length=50),
-                      birthday: date = Form(...),
-                      password: str = Form(min_length=8, max_length=50),
-                      email: EmailStr = Form(default=None)):
-    """Create new user"""
-    # TODO: handle password
-    user = User(user_id=uuid.uuid4(),
-                first_name=first_name,
-                last_name=last_name,
-                birthday=birthday,
-                email=email)
+def register_new_user(user: UserRegister = Body(...)) -> User:
+    """
+    This Path operation register a new user
+
+    Parameters
+    ----------
+    - user: User information of type UserRegister
+
+    Returns
+    -------
+    A json with basic information for the user
+    """
+    with open("users.json", "r+", encoding="utf-8") as f:
+        results: list[dict[str, str]] = json.load(f)
+        user_dict = user.dict()
+        user_dict["user_id"] = str(user_dict["user_id"])
+        user_dict["birthday"] = str(user_dict["birthday"])
+        results.append(user_dict)
+        f.seek(0)
+        json.dump(results, f)
     return user
 
 
