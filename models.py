@@ -8,24 +8,15 @@ import uuid
 
 
 class Tweet(BaseModel):
-    tweet_id: uuid.UUID | str = Field(...)
+    tweet_id: uuid.UUID = Field(...)
     message: str = Field(..., min_length=25, max_length=170)
+    by: Optional[User] = Field(default=1)     # TODO: Delete optional
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    by: User = Field(...)
-
-    class Config:
-        """Just for testing API. Default values shown in swagger, for example"""
-        schema_extra = {
-            "example": {
-                "tweet_id": "some_test_id",
-                "message": "Some message with more that 25 characters",
-            }
-        }
 
 
 class UserBase(BaseModel):
-    user_id: uuid.UUID | str = Field(...)
+    user_id: uuid.UUID = Field(...)
     email: EmailStr = Field(...)
 
 
@@ -37,3 +28,7 @@ class User(BaseModel):
     first_name: str = Field(..., min_length=5, max_length=50)
     last_name: str = Field(..., min_length=5, max_length=50)
     birthday: Optional[date] = Field(default=None)
+
+
+class UserRegister(User, UserLogin):
+    ...
