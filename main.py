@@ -21,6 +21,7 @@ Run server: uvicorn main:app --reload
 - PUT /users/{user_id}        Update specific user
 - DELETE /users/{user_id}     Delete specific user
 
+TODO: https://fastapi.tiangolo.com/tutorial/sql-databases/#create-the-sqlalchemy-parts
 """
 from __future__ import annotations
 import uuid
@@ -33,43 +34,37 @@ from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
 from models import Tweet, User, UserRegister
 from uuid import uuid4
-from typing import Optional, Any
+from typing import Optional, Any, Protocol
 from datetime import date
 
 
 app = FastAPI()
 
 
-# TODO: get information from database
-TEST_TWEETS = [Tweet(tweet_id=uuid4(), message="Some message ............."),
-               Tweet(tweet_id=uuid4(), message="Some other message......."),
-               Tweet(tweet_id=uuid4(), message="Some other message 2.......")]
-
-
-def retrieve_tweet(tweet_id: uuid.UUID) -> Optional[Tweet]:
-    """Retrieve tweet with tweet id"""
-    try:
-        tweet = list(filter(lambda tw: tw.tweet_id == tweet_id, TEST_TWEETS))[0]
-    except IndexError:
-        raise Exception(f"Tweet id: {tweet_id} not present")
-    return tweet
+# def retrieve_tweet(tweet_id: uuid.UUID) -> Optional[Tweet]:
+#     """Retrieve tweet with tweet id"""
+#     try:
+#         tweet = list(filter(lambda tw: tw.tweet_id == tweet_id, TEST_TWEETS))[0]
+#     except IndexError:
+#         raise Exception(f"Tweet id: {tweet_id} not present")
+#     return tweet
 
 
 # Path operations
 # Tweets path operations
 
-@app.get(path="/", response_class=RedirectResponse,
-         summary="Show all tweets", tags=["Tweets"])
-def home():
-    """Show all tweets information. Redirect to /tweets"""
-    return "/tweets"
+# @app.get(path="/", response_class=RedirectResponse,
+#          summary="Show all tweets", tags=["Tweets"])
+# def home():
+#     """Show all tweets information. Redirect to /tweets"""
+#     return "/tweets"
 
 
-@app.get("/tweets", status_code=status.HTTP_200_OK,
-         summary="Show all tweets", tags=["Tweets"])
-def get_tweets():
-    """Show all tweets information"""
-    return {tweet.tweet_id: tweet for tweet in TEST_TWEETS}
+# @app.get("/tweets", status_code=status.HTTP_200_OK,
+#          summary="Show all tweets", tags=["Tweets"])
+# def get_tweets():
+#     """Show all tweets information"""
+#     return {tweet.tweet_id: tweet for tweet in TEST_TWEETS}
 
 
 # @app.get("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
@@ -82,12 +77,35 @@ def get_tweets():
 #     return list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
 #
 #
-# @app.post("/tweets/", response_model=Tweet, status_code=status.HTTP_201_CREATED,
-#           summary="Create a tweet", tags=["Tweets"])
-# def create_tweet(tweet: Tweet = Body(...)):
-#     """Create new tweet"""
-#     TEST_TWEETS.append(tweet)
-#     return tweet
+@app.post("/tweets/", response_model=Tweet, status_code=status.HTTP_201_CREATED,
+          summary="Post a tweet", tags=["Tweets"])
+def post_tweet(tweet: Tweet = Body(...)) -> Tweet:
+    """
+    This Path operation post a tweet
+
+    Parameters
+    ----------
+    - tweet: Tweet information
+
+    Returns
+    -------
+    A json with basic tweet information
+    """
+    with open("tweets.json", "r+", encoding="utf-8") as f:
+        results: list[dict[str, str]] = json.load(f)
+        tweet_dict = tweet.dict()
+        tweet_dict["tweet_id"] = str(tweet_dict["tweet_id"])
+        tweet_dict["created_at"] = str(tweet_dict["created_at"])
+        if "updated_at" in tweet_dict.keys():
+            tweet_dict["updated_at"] = str(tweet_dict["updated_at"])
+        tweet_dict["created_at"] = str(tweet_dict["created_at"])
+        # Cast user information
+        tweet_dict["by"]["user_id"] = str(tweet_dict["by"]["user_id"])
+        tweet_dict["by"]["birthday"] = str(tweet_dict["by"]["birthday"])
+        results.append(tweet_dict)
+        f.seek(0)
+        json.dump(results, f)
+    return tweet
 #
 #
 # @app.put("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_201_CREATED,
@@ -151,8 +169,17 @@ def login():
 
 @app.get(path="/users", response_model=list[User], status_code=status.HTTP_200_OK,
          summary="Show all users", tags=["Users"])
-def show_all_users():
-    pass
+def show_all_users() -> list[User]:
+    """
+    This path operation shows all users in the app
+
+    Returns
+    -------
+    Json list with all Users in the app
+    """
+    with open("users.json", "r", encoding="utf-8") as f:
+        results = json.load(f)
+        return results
 
 
 @app.get(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
