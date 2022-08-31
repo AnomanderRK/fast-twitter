@@ -53,18 +53,26 @@ app = FastAPI()
 # Path operations
 # Tweets path operations
 
-# @app.get(path="/", response_class=RedirectResponse,
-#          summary="Show all tweets", tags=["Tweets"])
-# def home():
-#     """Show all tweets information. Redirect to /tweets"""
-#     return "/tweets"
+@app.get(path="/", response_class=RedirectResponse,
+         summary="Show all tweets", tags=["Tweets"])
+def home():
+    """Show all tweets information. Redirect to /tweets"""
+    return "/tweets"
 
 
-# @app.get("/tweets", status_code=status.HTTP_200_OK,
-#          summary="Show all tweets", tags=["Tweets"])
-# def get_tweets():
-#     """Show all tweets information"""
-#     return {tweet.tweet_id: tweet for tweet in TEST_TWEETS}
+@app.get("/tweets", status_code=status.HTTP_200_OK, response_model=list[Tweet],
+         summary="Show all tweets", tags=["Tweets"])
+def get_tweets():
+    """
+    This path operation shows all tweets in the app
+
+    Returns
+    -------
+    Json list with all Users in the app
+    """
+    with open("tweets.json", "r", encoding="utf-8") as f:
+        results = json.load(f)
+        return results
 
 
 # @app.get("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
