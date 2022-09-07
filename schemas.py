@@ -21,6 +21,9 @@ class User(UserBase):
     last_name: str = Field(..., min_length=5, max_length=50)
     birthday: Optional[date] = Field(default=None)
 
+    class Config:
+        orm_mode = True
+
 
 class UserRegister(User, UserLogin):
     ...
@@ -32,3 +35,6 @@ class Tweet(BaseModel):
     by: User = Field(...)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = Field(default_factory=datetime.now)
+
+    class Config:
+        orm_mode = True
