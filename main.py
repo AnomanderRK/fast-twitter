@@ -32,7 +32,7 @@ from fastapi import Path, Body, Form, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
-from models import Tweet, User, UserRegister
+from schemas import Tweet, User, UserRegister
 from uuid import uuid4
 from typing import Optional, Any, Protocol
 from datetime import date
@@ -75,16 +75,29 @@ def get_tweets():
         return results
 
 
-# @app.get("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
-#          summary="Show a tweet", tags=["Tweets"])
-# def get_tweet(tweet_id: uuid.UUID = Path(..., min_length=5)):
-#     """Get tween with tweet id"""
-#     if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"{tweet_id} not present in data base")
-#     return list(filter(lambda tweet: tweet.tweet_id == tweet_id, TEST_TWEETS))[0]
-#
-#
+@app.get("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
+         response_model_exclude={"created_at"}, summary="Show a tweet", tags=["Tweets"])
+def get_tweet(tweet_id: uuid.UUID = Path(...)):
+    """
+    Get tween with tweet id
+
+    Parameters
+    ----------
+    tweet_id: unique identifier for tweet
+
+    Returns
+    -------
+    Tweet information
+    """
+    with open("tweets.json", "r", encoding="utf-8") as f:
+        results = json.load(f)
+        print(results)
+        print(tweet_id)
+        tweets = [tweet for tweet in results if str(tweet["tweet_id"]) == str(tweet_id)]
+        if tweets:
+            return tweets[0]
+
+
 @app.post("/tweets/", response_model=Tweet, status_code=status.HTTP_201_CREATED,
           summary="Post a tweet", tags=["Tweets"])
 def post_tweet(tweet: Tweet = Body(...)) -> Tweet:
