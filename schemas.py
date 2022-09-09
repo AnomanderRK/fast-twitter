@@ -20,6 +20,7 @@ class User(UserBase):
     first_name: str = Field(..., min_length=5, max_length=50)
     last_name: str = Field(..., min_length=5, max_length=50)
     birthday: Optional[date] = Field(default=None)
+    tweets: list[Tweet] = []
 
     class Config:
         orm_mode = True
@@ -33,6 +34,7 @@ class Tweet(BaseModel):
     tweet_id: uuid.UUID = Field(...)
     message: str = Field(..., min_length=25, max_length=170)
     by: User = Field(...)
+    user_id: int = Field(...)   # Delete field?
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = Field(default_factory=datetime.now)
 
