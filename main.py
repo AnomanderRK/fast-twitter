@@ -4,10 +4,10 @@ Run server: uvicorn main:app --reload
 # End points design
 ## Tweets
 - GET /tweets/                Show all tweets
-- GET /tweets/{tweet_id}      show specific tweet
+- GET /tweets/{id}      show specific tweet
 - POST /tweets/               Create new tweet
-- PUT /tweet/{tweet_id}       Update specific tweet
-- DELETE /tweet/{tweet_id}    Delete specific tweet
+- PUT /tweet/{id}       Update specific tweet
+- DELETE /tweet/{id}    Delete specific tweet
 
 ## Authentication
 - POST /auth/signup           Register new user
@@ -17,37 +17,42 @@ Run server: uvicorn main:app --reload
 - PUT /auth/login             login user
 - PUT /auth/signup            sign up new user
 - GET /users/                 Show all users
-- GET /users/{user_id}        Get specific user
-- PUT /users/{user_id}        Update specific user
-- DELETE /users/{user_id}     Delete specific user
+- GET /users/{id}        Get specific user
+- PUT /users/{id}        Update specific user
+- DELETE /users/{id}     Delete specific user
 
 TODO: https://fastapi.tiangolo.com/tutorial/sql-databases/#create-the-sqlalchemy-parts
 """
-from __future__ import annotations
 import uuid
 import json
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi import Path, Body, Form, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
-from schemas import Tweet, User, UserRegister
+from schemas import Tweet, User, UserCreate
 from uuid import uuid4
-from typing import Optional, Any, Protocol
+from typing import Optional, Any, Protocol, List
 from datetime import date
+import models
+import crud
+import schemas
+from database import SessionLocal, engine
+from sqlalchemy.orm import Session
+
+models.Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI()
 
 
-# def retrieve_tweet(tweet_id: uuid.UUID) -> Optional[Tweet]:
-#     """Retrieve tweet with tweet id"""
-#     try:
-#         tweet = list(filter(lambda tw: tw.tweet_id == tweet_id, TEST_TWEETS))[0]
-#     except IndexError:
-#         raise Exception(f"Tweet id: {tweet_id} not present")
-#     return tweet
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 # Path operations
@@ -60,106 +65,60 @@ def home():
     return "/tweets"
 
 
-@app.get("/tweets", status_code=status.HTTP_200_OK, response_model=list[Tweet],
+@app.get("/tweets", status_code=status.HTTP_200_OK, response_model=List[Tweet],
          summary="Show all tweets", tags=["Tweets"])
-def get_tweets():
+def get_tweets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     This path operation shows all tweets in the app
 
     Returns
     -------
-    Json list with all Users in the app
+    Json list with all tweets in the app
     """
-    with open("tweets.json", "r", encoding="utf-8") as f:
-        results = json.load(f)
-        return results
+    tweets = crud.get_tweets(db, skip, limit)
+    return tweets
 
 
-@app.get("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
+@app.get("/tweets/{id}", response_model=Tweet, status_code=status.HTTP_200_OK,
          response_model_exclude={"created_at"}, summary="Show a tweet", tags=["Tweets"])
-def get_tweet(tweet_id: uuid.UUID = Path(...)):
+def get_tweet(tweet_id: int = Path(...), db: Session = Depends(get_db)):
     """
     Get tween with tweet id
-
-    Parameters
-    ----------
-    tweet_id: unique identifier for tweet
 
     Returns
     -------
     Tweet information
     """
-    with open("tweets.json", "r", encoding="utf-8") as f:
-        results = json.load(f)
-        print(results)
-        print(tweet_id)
-        tweets = [tweet for tweet in results if str(tweet["tweet_id"]) == str(tweet_id)]
-        if tweets:
-            return tweets[0]
+    db_tweet = crud.get_tweet(db, tweet_id)
+    if db_tweet is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Tweet not found")
+    return db_tweet
 
 
-@app.post("/tweets/", response_model=Tweet, status_code=status.HTTP_201_CREATED,
+@app.post("/users/{id}/tweets/", response_model=Tweet, status_code=status.HTTP_201_CREATED,
           summary="Post a tweet", tags=["Tweets"])
-def post_tweet(tweet: Tweet = Body(...)) -> Tweet:
+def post_tweet(user_id: int, tweet: schemas.Tweet = Body(...), db: Session = Depends(get_db)) -> Tweet:
     """
     This Path operation post a tweet
 
     Parameters
     ----------
+    - id: User posting the tweet
     - tweet: Tweet information
 
     Returns
     -------
     A json with basic tweet information
     """
-    with open("tweets.json", "r+", encoding="utf-8") as f:
-        results: list[dict[str, str]] = json.load(f)
-        tweet_dict = tweet.dict()
-        tweet_dict["tweet_id"] = str(tweet_dict["tweet_id"])
-        tweet_dict["created_at"] = str(tweet_dict["created_at"])
-        if "updated_at" in tweet_dict.keys():
-            tweet_dict["updated_at"] = str(tweet_dict["updated_at"])
-        tweet_dict["created_at"] = str(tweet_dict["created_at"])
-        # Cast user information
-        tweet_dict["by"]["user_id"] = str(tweet_dict["by"]["user_id"])
-        tweet_dict["by"]["birthday"] = str(tweet_dict["by"]["birthday"])
-        results.append(tweet_dict)
-        f.seek(0)
-        json.dump(results, f)
-    return tweet
-#
-#
-# @app.put("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_201_CREATED,
-#          summary="Update a tweet", tags=["Tweets"])
-# def update_tweet(tweet_id: uuid.UUID = Path(...),
-#                  message: str = Body(...)):
-#     """Update tweet"""
-#     if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"{tweet_id} not found!")
-#
-#     tweet = retrieve_tweet(tweet_id)
-#     tweet.message = message
-#     return tweet
-#
-#
-# @app.delete("/tweets/{tweet_id}", response_model=Tweet, status_code=status.HTTP_200_OK,
-#             summary="Delete a tweet", tags=["Tweets"])
-# def delete_tweet(tweet_id: uuid.UUID = Path(...)):
-#     """Update tweet"""
-#     if tweet_id not in [tweet.tweet_id for tweet in TEST_TWEETS]:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"{tweet_id} not found!")
-#
-#     tweet = retrieve_tweet(tweet_id)
-#     TEST_TWEETS.remove(tweet)
-#     return tweet
+    return crud.create_user_tweet(db, tweet, user_id=user_id)
 
 
 # Users path operations
-@app.post(path="/auth/signup", response_model=User, status_code=status.HTTP_201_CREATED,
+@app.post(path="/users", response_model=schemas.User, status_code=status.HTTP_201_CREATED,
           summary="Register a new user", tags=["Users"])
-def register_new_user(user: UserRegister = Body(...)) -> User:
+def register_new_user(user: schemas.UserCreate = Body(...),
+                      db: Session = Depends(get_db)):
     """
     This Path operation register a new user
 
@@ -171,26 +130,16 @@ def register_new_user(user: UserRegister = Body(...)) -> User:
     -------
     A json with basic information for the user
     """
-    with open("users.json", "r+", encoding="utf-8") as f:
-        results: list[dict[str, str]] = json.load(f)
-        user_dict = user.dict()
-        user_dict["user_id"] = str(user_dict["user_id"])
-        user_dict["birthday"] = str(user_dict["birthday"])
-        results.append(user_dict)
-        f.seek(0)
-        json.dump(results, f)
-    return user
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="User already registered")
+    return crud.create_user(db, user)
 
 
-@app.post(path="/auth/login", response_model=User, status_code=status.HTTP_200_OK,
-          summary="Login user", tags=["Users"])
-def login():
-    pass
-
-
-@app.get(path="/users", response_model=list[User], status_code=status.HTTP_200_OK,
+@app.get(path="/users", response_model=list[schemas.User], status_code=status.HTTP_200_OK,
          summary="Show all users", tags=["Users"])
-def show_all_users() -> list[User]:
+def show_all_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> list[User]:
     """
     This path operation shows all users in the app
 
@@ -198,24 +147,16 @@ def show_all_users() -> list[User]:
     -------
     Json list with all Users in the app
     """
-    with open("users.json", "r", encoding="utf-8") as f:
-        results = json.load(f)
-        return results
+    users = crud.get_users(db, skip=skip, limit=limit)
+    return users
 
-
-@app.get(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
-         summary="Get information for specific user", tags=["Users"])
-def show_user():
-    pass
-
-
-@app.delete(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
-            summary="Delete a user", tags=["Users"])
-def delete_user():
-    pass
-
-
-@app.put(path="/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK,
-         summary="Update user", tags=["Users"])
-def update_user():
-    pass
+#
+# @app.get(path="/users/{id}", response_model=schemas.User, status_code=status.HTTP_200_OK,
+#          summary="Get information for specific user", tags=["Users"])
+# def show_user(id: int, db: Session = Depends(get_db)):
+#     db_user = crud.get_user(db, id=id)
+#     if db_user is None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                             detail="User not found!")
+#     return db_user
+#
