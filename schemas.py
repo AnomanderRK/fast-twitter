@@ -1,37 +1,35 @@
 """Contains BaseModels models for current API"""
 from __future__ import annotations
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from typing import Optional, List, Any
 from datetime import datetime
 from datetime import date
 import uuid
 
 
 class UserBase(BaseModel):
-    user_id: uuid.UUID = Field(...)
     email: EmailStr = Field(...)
 
 
-class UserLogin(UserBase):
+class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=50)
+    first_name: str = Field(..., min_length=5, max_length=50)
+    last_name: str = Field(..., min_length=5, max_length=50)
 
 
 class User(UserBase):
-    first_name: str = Field(..., min_length=5, max_length=50)
-    last_name: str = Field(..., min_length=5, max_length=50)
+    id: int
     birthday: Optional[date] = Field(default=None)
-    tweets: list[Tweet] = []
+    tweets: List[Any] = []
+    # Using list[Tweet] leads to error
+    # similar to: https://github.com/pydantic/pydantic/issues/545#issuecomment-496247768
 
     class Config:
         orm_mode = True
 
 
-class UserRegister(User, UserLogin):
-    ...
-
-
 class Tweet(BaseModel):
-    tweet_id: uuid.UUID = Field(...)
+    id: uuid.UUID = Field(...)
     message: str = Field(..., min_length=25, max_length=170)
     by: User = Field(...)
     user_id: int = Field(...)   # Delete field?
